@@ -31,8 +31,6 @@ let lastFired = 0;
 let enemies;
 let powerups;
 let buildings;
-let score = 0;
-
 let enemyBullets;
 let bossBullets;
 
@@ -40,7 +38,8 @@ let scoreText;
 let healthText;
 let timeText;
 let spawnTimer = 0;
-let killCount = 0;
+let score = 0;
+
 let health = 5;
 let speed = 200;
 let fireRate = 300; // milliseconds
@@ -82,7 +81,9 @@ function preload() {
     enemyBulletGfx.destroy();
 
     const bossGfx = this.add.graphics();
-    bossGfx.fillStyle(0x9900ff, 1);
+    // Boss will be a bright magenta circle
+    bossGfx.fillStyle(0xff00ff, 1);
+
     bossGfx.fillCircle(30, 30, 30);
     bossGfx.generateTexture('boss', 60, 60);
     bossGfx.destroy();
@@ -126,27 +127,21 @@ function create() {
 
     // Player setup
     player = this.physics.add.image(WORLD_SIZE / 2, WORLD_SIZE / 2, 'player');
-    scoreText = this.add.text(10, 10, 'Score: 0', { font: '16px Arial', fill: '#ffffff' });
+    player.setCollideWorldBounds(true);
 
+    // Camera follows the player
+    this.cameras.main.startFollow(player);
+    this.cameras.main.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
+    this.cameras.main.setBackgroundColor('#333333');
 
-    // Spawn power-ups periodically using a timed event
-    this.time.addEvent({
-        delay: 10000,
-        callback: spawnPowerup,
-        callbackScope: this,
-        loop: true
-    });
-
-    // Spawn boss at 100 points
-    if (!boss && score >= 100) {
-    score += 15;
-    scoreText.setText('Score: ' + score);
 
     // Groups
     bullets = this.physics.add.group();
     enemies = this.physics.add.group();
     powerups = this.physics.add.group();
     buildings = this.physics.add.staticGroup();
+    enemyBullets = this.physics.add.group();
+    bossBullets = this.physics.add.group();
 
     // Place rectangular buildings around the world for orientation
     for (let i = 0; i < 40; i++) {
@@ -163,18 +158,34 @@ function create() {
     // Collisions
     this.physics.add.overlap(bullets, enemies, hitEnemy, null, this);
     this.physics.add.overlap(player, enemies, playerHit, null, this);
+    this.physics.add.overlap(player, enemyBullets, playerHitByBullet, null, this);
+    this.physics.add.overlap(player, bossBullets, playerHitByBullet, null, this);
+
     this.physics.add.overlap(player, powerups, collectPowerup, null, this);
     this.physics.add.collider(player, buildings);
     this.physics.add.collider(enemies, buildings);
     this.physics.add.collider(bullets, buildings, bulletHitBuilding, null, this);
+    this.physics.add.collider(enemyBullets, buildings, bulletHitBuilding, null, this);
+    this.physics.add.collider(bossBullets, buildings, bulletHitBuilding, null, this);
 
     // UI texts fixed to camera
-    scoreText = this.add.text(10, 10, 'Kills: 0', { font: '16px Arial', fill: '#ffffff' });
+    scoreText = this.add.text(10, 10, 'Score: 0', { font: '16px Arial', fill: '#ffffff' });
+
     scoreText.setScrollFactor(0);
     healthText = this.add.text(10, 30, 'Health: ' + health, { font: '16px Arial', fill: '#ffffff' });
     healthText.setScrollFactor(0);
     timeText = this.add.text(10, 50, 'Time: 0', { font: '16px Arial', fill: '#ffffff' });
     timeText.setScrollFactor(0);
+
+
+    // Spawn power-ups periodically using a timed event
+    this.time.addEvent({
+        delay: 10000,
+        callback: spawnPowerup,
+        callbackScope: this,
+        loop: true
+    });
+
 
     startTime = this.time.now;
 }
@@ -204,19 +215,44 @@ function update(time, delta) {
     }
     player.setVelocity(vx, vy);
 
-    // Spawn enemies every 2 seconds
+    // Spawn enemies every 2 seconds until boss appears
     spawnTimer += delta;
-    if (spawnTimer > 2000) {
+    if (!boss && spawnTimer > 2000) {
+
         spawnTimer = 0;
         spawnEnemy.call(this);
     }
 
-    // Enemies chase player
+    // Spawn boss at 100 points
+    if (!boss && score >= 100) {
+        spawnBoss.call(this);
+    }
+
+    // Enemies chase player and use abilities
     enemies.children.iterate(enemy => {
-        if (enemy) {
-            this.physics.moveToObject(enemy, player, 100);
+        if (!enemy) return;
+        const speedVal = enemy.ability === 'fast' ? 150 : 100;
+        this.physics.moveToObject(enemy, player, speedVal);
+        if (enemy.ability === 'shoot') {
+            enemy.shootTimer += delta;
+            if (enemy.shootTimer > 2000) {
+                enemy.shootTimer = 0;
+                enemyShoot.call(this, enemy);
+            }
         }
     });
+
+    // Boss behavior
+    if (boss) {
+        this.physics.moveToObject(boss, player, 80);
+        bossShootTimer += delta;
+        if (bossShootTimer > 1500) {
+            bossShootTimer = 0;
+            bossShoot.call(this);
+        }
+        updateBossBar();
+    }
+
 }
 
 function shoot(pointer) {
@@ -228,26 +264,22 @@ function shoot(pointer) {
     for (let i = 0; i < bulletCount; i++) {
         const offset = (i - (bulletCount - 1) / 2) * 0.1;
         const angle = baseAngle + offset;
-        score += 150; // boss worth 10 kills
-        scoreText.setText('Score: ' + score);
-function spawnPowerup() {
-    const types = ['speed', 'heal', 'multi', 'bspeed'];
-    const type = types[Phaser.Math.Between(0, types.length - 1)];
-    const x = Phaser.Math.Between(50, WORLD_SIZE - 50);
-    const y = Phaser.Math.Between(50, WORLD_SIZE - 50);
-    const p = powerups.create(x, y, type);
-    p.type = type;
-}
+        const bullet = bullets.create(player.x, player.y, 'bullet');
+        bullet.setCollideWorldBounds(false);
+        bullet.body.allowGravity = false;
+        const velocity = this.physics.velocityFromRotation(angle, bulletSpeed);
+        bullet.setVelocity(velocity.x, velocity.y);
+    }
 
-
-    bullet.setVelocity(velocity.x, velocity.y);
 }
 
 function hitEnemy(bullet, enemy) {
     bullet.destroy();
     enemy.destroy();
-    killCount++;
-    scoreText.setText('Kills: ' + killCount);
+    // Each enemy is worth 10 points
+    score += 10;
+    scoreText.setText('Score: ' + score);
+
 }
 
 function playerHit(playerObj, enemy) {
@@ -260,6 +292,71 @@ function bulletHitBuilding(bullet, building) {
     bullet.destroy();
 }
 
+
+function spawnBoss() {
+    const pos = Phaser.Math.Between(0, 1);
+    let x = pos === 0 ? 0 : WORLD_SIZE;
+    let y = Phaser.Math.Between(0, WORLD_SIZE);
+    if (Phaser.Math.Between(0, 1) === 0) {
+        x = Phaser.Math.Between(0, WORLD_SIZE);
+        y = pos === 0 ? 0 : WORLD_SIZE;
+    }
+    bossHealth = 30;
+    boss = this.physics.add.image(x, y, 'boss');
+    boss.setCollideWorldBounds(true);
+    bossHealthBar = this.add.graphics();
+    this.physics.add.overlap(bullets, boss, hitBoss, null, this);
+    this.physics.add.overlap(player, boss, playerHit, null, this);
+}
+
+function updateBossBar() {
+    if (!boss) return;
+    bossHealthBar.clear();
+    const width = 60;
+    const x = boss.x - width / 2;
+    const y = boss.y - 40;
+    bossHealthBar.fillStyle(0xff0000, 1);
+    bossHealthBar.fillRect(x, y, width * (bossHealth / 30), 6);
+    bossHealthBar.lineStyle(1, 0xffffff, 1);
+    bossHealthBar.strokeRect(x, y, width, 6);
+}
+
+function bossShoot() {
+    const angle = Phaser.Math.Angle.Between(boss.x, boss.y, player.x, player.y);
+    const velocity = boss.scene.physics.velocityFromRotation(angle, 400);
+    const b = bossBullets.create(boss.x, boss.y, 'enemyBullet');
+    b.setCollideWorldBounds(false);
+    b.body.allowGravity = false;
+    b.setVelocity(velocity.x, velocity.y);
+}
+
+function hitBoss(bullet, bossObj) {
+    bullet.destroy();
+    bossHealth--;
+    if (bossHealth <= 0) {
+        bossHealthBar.destroy();
+        bossObj.destroy();
+        boss = null;
+        score += 150; // boss worth 10 kills
+        scoreText.setText('Score: ' + score);
+    }
+}
+
+function playerHitByBullet(playerObj, bullet) {
+    bullet.destroy();
+    health--;
+    healthText.setText('Health: ' + health);
+}
+
+function enemyShoot(enemy) {
+    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
+    const velocity = enemy.scene.physics.velocityFromRotation(angle, 300);
+    const b = enemyBullets.create(enemy.x, enemy.y, 'enemyBullet');
+    b.setCollideWorldBounds(false);
+    b.body.allowGravity = false;
+    b.setVelocity(velocity.x, velocity.y);
+}
+
 function spawnEnemy() {
     const pos = Phaser.Math.Between(0, 1);
     let x = pos === 0 ? 0 : WORLD_SIZE;
@@ -270,6 +367,25 @@ function spawnEnemy() {
     }
     const enemy = enemies.create(x, y, 'enemy');
     enemy.setCollideWorldBounds(true);
+    const type = Phaser.Math.Between(0, 2);
+    if (type === 0) {
+        enemy.ability = 'fast';
+    } else if (type === 1) {
+        enemy.ability = 'shoot';
+        enemy.shootTimer = 0;
+    } else {
+        enemy.ability = 'normal';
+    }
+}
+
+function spawnPowerup() {
+    const types = ['speed', 'heal', 'multi', 'bspeed'];
+    const type = types[Phaser.Math.Between(0, types.length - 1)];
+    const x = Phaser.Math.Between(50, WORLD_SIZE - 50);
+    const y = Phaser.Math.Between(50, WORLD_SIZE - 50);
+    const p = powerups.create(x, y, type);
+    p.type = type;
+
 }
 
 function collectPowerup(playerObj, power) {
@@ -278,6 +394,11 @@ function collectPowerup(playerObj, power) {
     } else if (power.type === 'heal') {
         health += 1;
         healthText.setText('Health: ' + health);
+    } else if (power.type === 'multi') {
+        bulletCount += 1;
+    } else if (power.type === 'bspeed') {
+        bulletSpeed += 100;
+
     }
     power.destroy();
 }
@@ -292,14 +413,4 @@ function gameOver(win) {
     }).setOrigin(0.5);
     return true;
 }
-
-// Periodically spawn power-ups
-setInterval(function() {
-    if (!game.scene.keys.default) return;
-    const type = Phaser.Math.Between(0, 1) === 0 ? 'speed' : 'heal';
-    const x = Phaser.Math.Between(50, WORLD_SIZE - 50);
-    const y = Phaser.Math.Between(50, WORLD_SIZE - 50);
-    const p = powerups.create(x, y, type);
-    p.type = type;
-}, 10000);
 
