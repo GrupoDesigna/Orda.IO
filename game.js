@@ -31,6 +31,8 @@ let lastFired = 0;
 let enemies;
 let powerups;
 let buildings;
+let score = 0;
+
 let enemyBullets;
 let bossBullets;
 
@@ -124,12 +126,21 @@ function create() {
 
     // Player setup
     player = this.physics.add.image(WORLD_SIZE / 2, WORLD_SIZE / 2, 'player');
-    player.setCollideWorldBounds(true);
+    scoreText = this.add.text(10, 10, 'Score: 0', { font: '16px Arial', fill: '#ffffff' });
 
-    // Camera follows the player
-    this.cameras.main.startFollow(player);
-    this.cameras.main.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
-    this.cameras.main.setBackgroundColor('#333333');
+
+    // Spawn power-ups periodically using a timed event
+    this.time.addEvent({
+        delay: 10000,
+        callback: spawnPowerup,
+        callbackScope: this,
+        loop: true
+    });
+
+    // Spawn boss at 100 points
+    if (!boss && score >= 100) {
+    score += 15;
+    scoreText.setText('Score: ' + score);
 
     // Groups
     bullets = this.physics.add.group();
@@ -213,12 +224,22 @@ function shoot(pointer) {
     if (time < lastFired + fireRate) return;
     lastFired = time;
 
-    const bullet = bullets.create(player.x, player.y, 'bullet');
-    bullet.setCollideWorldBounds(false);
-    bullet.body.allowGravity = false;
+    const baseAngle = Phaser.Math.Angle.Between(player.x, player.y, pointer.worldX, pointer.worldY);
+    for (let i = 0; i < bulletCount; i++) {
+        const offset = (i - (bulletCount - 1) / 2) * 0.1;
+        const angle = baseAngle + offset;
+        score += 150; // boss worth 10 kills
+        scoreText.setText('Score: ' + score);
+function spawnPowerup() {
+    const types = ['speed', 'heal', 'multi', 'bspeed'];
+    const type = types[Phaser.Math.Between(0, types.length - 1)];
+    const x = Phaser.Math.Between(50, WORLD_SIZE - 50);
+    const y = Phaser.Math.Between(50, WORLD_SIZE - 50);
+    const p = powerups.create(x, y, type);
+    p.type = type;
+}
 
-    const angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.worldX, pointer.worldY);
-    const velocity = this.physics.velocityFromRotation(angle, 500);
+
     bullet.setVelocity(velocity.x, velocity.y);
 }
 
