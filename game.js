@@ -30,6 +30,10 @@ let bullets;
 let lastFired = 0;
 let enemies;
 let powerups;
+<<<<<<< b10q1v-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
+let buildings;
+=======
+>>>>>>> main
 let scoreText;
 let healthText;
 let timeText;
@@ -73,6 +77,15 @@ function preload() {
     healGfx.fillCircle(10, 10, 10);
     healGfx.generateTexture('heal', 20, 20);
     healGfx.destroy();
+<<<<<<< b10q1v-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
+
+    const buildingGfx = this.add.graphics();
+    buildingGfx.fillStyle(0x555555, 1);
+    buildingGfx.fillRect(0, 0, 60, 60);
+    buildingGfx.generateTexture('building', 60, 60);
+    buildingGfx.destroy();
+=======
+>>>>>>> main
 }
 
 function create() {
@@ -86,11 +99,26 @@ function create() {
     // Camera follows the player
     this.cameras.main.startFollow(player);
     this.cameras.main.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
+<<<<<<< b10q1v-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
+    this.cameras.main.setBackgroundColor('#333333');
+=======
+>>>>>>> main
 
     // Groups
     bullets = this.physics.add.group();
     enemies = this.physics.add.group();
     powerups = this.physics.add.group();
+<<<<<<< b10q1v-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
+    buildings = this.physics.add.staticGroup();
+
+    // Place rectangular buildings around the world for orientation
+    for (let i = 0; i < 40; i++) {
+        const x = Phaser.Math.Between(100, WORLD_SIZE - 100);
+        const y = Phaser.Math.Between(100, WORLD_SIZE - 100);
+        buildings.create(x, y, 'building');
+    }
+=======
+>>>>>>> main
 
     // Input
     cursors = this.input.keyboard.createCursorKeys();
@@ -101,6 +129,12 @@ function create() {
     this.physics.add.overlap(bullets, enemies, hitEnemy, null, this);
     this.physics.add.overlap(player, enemies, playerHit, null, this);
     this.physics.add.overlap(player, powerups, collectPowerup, null, this);
+<<<<<<< b10q1v-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
+    this.physics.add.collider(player, buildings);
+    this.physics.add.collider(enemies, buildings);
+    this.physics.add.collider(bullets, buildings, bulletHitBuilding, null, this);
+=======
+>>>>>>> main
 
     // UI texts fixed to camera
     scoreText = this.add.text(10, 10, 'Kills: 0', { font: '16px Arial', fill: '#ffffff' });
@@ -180,6 +214,13 @@ function playerHit(playerObj, enemy) {
     healthText.setText('Health: ' + health);
 }
 
+<<<<<<< b10q1v-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
+function bulletHitBuilding(bullet, building) {
+    bullet.destroy();
+}
+
+=======
+>>>>>>> main
 function spawnEnemy() {
     const pos = Phaser.Math.Between(0, 1);
     let x = pos === 0 ? 0 : WORLD_SIZE;
