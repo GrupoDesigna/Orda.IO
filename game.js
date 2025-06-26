@@ -34,11 +34,19 @@ let buildings;
 let enemyBullets;
 let bossBullets;
 
+
+
+
+
 let scoreText;
 let healthText;
 let timeText;
 let spawnTimer = 0;
 let score = 0;
+
+
+
+
 
 let health = 5;
 let speed = 200;
@@ -50,6 +58,8 @@ let boss;
 let bossHealth = 0;
 let bossHealthBar;
 let bossShootTimer = 0;
+let bossCollider;
+let bossPlayerCollider;
 
 const WORLD_SIZE = 2000;
 const WIN_TIME = 60; // seconds to win
@@ -276,8 +286,8 @@ function shoot(pointer) {
 function hitEnemy(bullet, enemy) {
     bullet.destroy();
     enemy.destroy();
-    // Each enemy is worth 10 points
-    score += 10;
+    // Each enemy is worth 15 points
+    score += 15;
     scoreText.setText('Score: ' + score);
 
 }
@@ -305,8 +315,9 @@ function spawnBoss() {
     boss = this.physics.add.image(x, y, 'boss');
     boss.setCollideWorldBounds(true);
     bossHealthBar = this.add.graphics();
-    this.physics.add.overlap(bullets, boss, hitBoss, null, this);
-    this.physics.add.overlap(player, boss, playerHit, null, this);
+    bossCollider = this.physics.add.overlap(bullets, boss, hitBoss, null, this);
+    bossPlayerCollider = this.physics.add.overlap(player, boss, playerHit, null, this);
+
 }
 
 function updateBossBar() {
@@ -336,8 +347,17 @@ function hitBoss(bullet, bossObj) {
     if (bossHealth <= 0) {
         bossHealthBar.destroy();
         bossObj.destroy();
+        if (bossCollider) {
+            bossCollider.destroy();
+            bossCollider = null;
+        }
+        if (bossPlayerCollider) {
+            bossPlayerCollider.destroy();
+            bossPlayerCollider = null;
+        }
         boss = null;
-        score += 150; // boss worth 10 kills
+        score += 150; // boss worth 150 points
+
         scoreText.setText('Score: ' + score);
     }
 }
