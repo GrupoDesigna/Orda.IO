@@ -31,8 +31,12 @@ let lastFired = 0;
 let enemies;
 let powerups;
 let buildings;
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
 let enemyBullets;
 let bossBullets;
+=======
+
+>>>>>>> main
 let scoreText;
 let healthText;
 let timeText;
@@ -41,6 +45,7 @@ let killCount = 0;
 let health = 5;
 let speed = 200;
 let fireRate = 300; // milliseconds
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
 let bulletSpeed = 500;
 let bulletCount = 1;
 let startTime;
@@ -48,6 +53,9 @@ let boss;
 let bossHealth = 0;
 let bossHealthBar;
 let bossShootTimer = 0;
+=======
+let startTime;
+>>>>>>> main
 const WORLD_SIZE = 2000;
 const WIN_TIME = 60; // seconds to win
 
@@ -71,6 +79,7 @@ function preload() {
     enemyGfx.generateTexture('enemy', 30, 30);
     enemyGfx.destroy();
 
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
     const enemyBulletGfx = this.add.graphics();
     enemyBulletGfx.fillStyle(0xff8800, 1);
     enemyBulletGfx.fillCircle(4, 4, 4);
@@ -95,6 +104,8 @@ function preload() {
     bspeedGfx.generateTexture('bspeed', 20, 20);
     bspeedGfx.destroy();
 
+=======
+>>>>>>> main
     const speedGfx = this.add.graphics();
     speedGfx.fillStyle(0x00ffff, 1);
     speedGfx.fillCircle(10, 10, 10);
@@ -112,6 +123,10 @@ function preload() {
     buildingGfx.fillRect(0, 0, 60, 60);
     buildingGfx.generateTexture('building', 60, 60);
     buildingGfx.destroy();
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
+=======
+
+>>>>>>> main
 }
 
 function create() {
@@ -132,8 +147,11 @@ function create() {
     enemies = this.physics.add.group();
     powerups = this.physics.add.group();
     buildings = this.physics.add.staticGroup();
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
     enemyBullets = this.physics.add.group();
     bossBullets = this.physics.add.group();
+=======
+>>>>>>> main
 
     // Place rectangular buildings around the world for orientation
     for (let i = 0; i < 40; i++) {
@@ -142,6 +160,10 @@ function create() {
         buildings.create(x, y, 'building');
     }
 
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
+=======
+
+>>>>>>> main
     // Input
     cursors = this.input.keyboard.createCursorKeys();
     wasd = this.input.keyboard.addKeys('W,A,S,D');
@@ -150,14 +172,21 @@ function create() {
     // Collisions
     this.physics.add.overlap(bullets, enemies, hitEnemy, null, this);
     this.physics.add.overlap(player, enemies, playerHit, null, this);
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
     this.physics.add.overlap(player, enemyBullets, playerHitByBullet, null, this);
     this.physics.add.overlap(player, bossBullets, playerHitByBullet, null, this);
+=======
+>>>>>>> main
     this.physics.add.overlap(player, powerups, collectPowerup, null, this);
     this.physics.add.collider(player, buildings);
     this.physics.add.collider(enemies, buildings);
     this.physics.add.collider(bullets, buildings, bulletHitBuilding, null, this);
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
     this.physics.add.collider(enemyBullets, buildings, bulletHitBuilding, null, this);
     this.physics.add.collider(bossBullets, buildings, bulletHitBuilding, null, this);
+=======
+
+>>>>>>> main
 
     // UI texts fixed to camera
     scoreText = this.add.text(10, 10, 'Kills: 0', { font: '16px Arial', fill: '#ffffff' });
@@ -195,13 +224,20 @@ function update(time, delta) {
     }
     player.setVelocity(vx, vy);
 
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
     // Spawn enemies every 2 seconds until boss appears
     spawnTimer += delta;
     if (!boss && spawnTimer > 2000) {
+=======
+    // Spawn enemies every 2 seconds
+    spawnTimer += delta;
+    if (spawnTimer > 2000) {
+>>>>>>> main
         spawnTimer = 0;
         spawnEnemy.call(this);
     }
 
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
     // Spawn boss at 100 kills
     if (!boss && killCount >= 100) {
         spawnBoss.call(this);
@@ -231,6 +267,14 @@ function update(time, delta) {
         }
         updateBossBar();
     }
+=======
+    // Enemies chase player
+    enemies.children.iterate(enemy => {
+        if (enemy) {
+            this.physics.moveToObject(enemy, player, 100);
+        }
+    });
+>>>>>>> main
 }
 
 function shoot(pointer) {
@@ -238,6 +282,7 @@ function shoot(pointer) {
     if (time < lastFired + fireRate) return;
     lastFired = time;
 
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
     const baseAngle = Phaser.Math.Angle.Between(player.x, player.y, pointer.worldX, pointer.worldY);
     for (let i = 0; i < bulletCount; i++) {
         const offset = (i - (bulletCount - 1) / 2) * 0.1;
@@ -248,6 +293,15 @@ function shoot(pointer) {
         const velocity = this.physics.velocityFromRotation(angle, bulletSpeed);
         bullet.setVelocity(velocity.x, velocity.y);
     }
+=======
+    const bullet = bullets.create(player.x, player.y, 'bullet');
+    bullet.setCollideWorldBounds(false);
+    bullet.body.allowGravity = false;
+
+    const angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.worldX, pointer.worldY);
+    const velocity = this.physics.velocityFromRotation(angle, 500);
+    bullet.setVelocity(velocity.x, velocity.y);
+>>>>>>> main
 }
 
 function hitEnemy(bullet, enemy) {
@@ -267,6 +321,7 @@ function bulletHitBuilding(bullet, building) {
     bullet.destroy();
 }
 
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
 
 function spawnBoss() {
     const pos = Phaser.Math.Between(0, 1);
@@ -332,6 +387,8 @@ function enemyShoot(enemy) {
     b.setVelocity(velocity.x, velocity.y);
 }
 
+=======
+>>>>>>> main
 function spawnEnemy() {
     const pos = Phaser.Math.Between(0, 1);
     let x = pos === 0 ? 0 : WORLD_SIZE;
@@ -342,6 +399,7 @@ function spawnEnemy() {
     }
     const enemy = enemies.create(x, y, 'enemy');
     enemy.setCollideWorldBounds(true);
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
     const type = Phaser.Math.Between(0, 2);
     if (type === 0) {
         enemy.ability = 'fast';
@@ -351,6 +409,8 @@ function spawnEnemy() {
     } else {
         enemy.ability = 'normal';
     }
+=======
+>>>>>>> main
 }
 
 function collectPowerup(playerObj, power) {
@@ -359,10 +419,13 @@ function collectPowerup(playerObj, power) {
     } else if (power.type === 'heal') {
         health += 1;
         healthText.setText('Health: ' + health);
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
     } else if (power.type === 'multi') {
         bulletCount += 1;
     } else if (power.type === 'bspeed') {
         bulletSpeed += 100;
+=======
+>>>>>>> main
     }
     power.destroy();
 }
@@ -381,8 +444,12 @@ function gameOver(win) {
 // Periodically spawn power-ups
 setInterval(function() {
     if (!game.scene.keys.default) return;
+<<<<<<< 5yvl4h-codex/crear-juego-2d-estilo-survival.io-con-phaser.js
     const types = ['speed', 'heal', 'multi', 'bspeed'];
     const type = types[Phaser.Math.Between(0, types.length - 1)];
+=======
+    const type = Phaser.Math.Between(0, 1) === 0 ? 'speed' : 'heal';
+>>>>>>> main
     const x = Phaser.Math.Between(50, WORLD_SIZE - 50);
     const y = Phaser.Math.Between(50, WORLD_SIZE - 50);
     const p = powerups.create(x, y, type);
