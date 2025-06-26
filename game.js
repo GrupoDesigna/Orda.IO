@@ -33,21 +33,11 @@ let powerups;
 let buildings;
 let enemyBullets;
 let bossBullets;
-
-
-
-
-
 let scoreText;
 let healthText;
 let timeText;
 let spawnTimer = 0;
 let score = 0;
-
-
-
-
-
 let health = 5;
 let speed = 200;
 let fireRate = 300; // milliseconds
@@ -60,7 +50,6 @@ let bossHealthBar;
 let bossShootTimer = 0;
 let bossCollider;
 let bossPlayerCollider;
-
 const WORLD_SIZE = 2000;
 const WIN_TIME = 60; // seconds to win
 
@@ -93,7 +82,6 @@ function preload() {
     const bossGfx = this.add.graphics();
     // Boss will be a bright magenta circle
     bossGfx.fillStyle(0xff00ff, 1);
-
     bossGfx.fillCircle(30, 30, 30);
     bossGfx.generateTexture('boss', 60, 60);
     bossGfx.destroy();
@@ -109,7 +97,6 @@ function preload() {
     bspeedGfx.fillCircle(10, 10, 10);
     bspeedGfx.generateTexture('bspeed', 20, 20);
     bspeedGfx.destroy();
-
 
     const speedGfx = this.add.graphics();
     speedGfx.fillStyle(0x00ffff, 1);
@@ -128,7 +115,6 @@ function preload() {
     buildingGfx.fillRect(0, 0, 60, 60);
     buildingGfx.generateTexture('building', 60, 60);
     buildingGfx.destroy();
-
 }
 
 function create() {
@@ -143,7 +129,6 @@ function create() {
     this.cameras.main.startFollow(player);
     this.cameras.main.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
     this.cameras.main.setBackgroundColor('#333333');
-
 
     // Groups
     bullets = this.physics.add.group();
@@ -170,7 +155,6 @@ function create() {
     this.physics.add.overlap(player, enemies, playerHit, null, this);
     this.physics.add.overlap(player, enemyBullets, playerHitByBullet, null, this);
     this.physics.add.overlap(player, bossBullets, playerHitByBullet, null, this);
-
     this.physics.add.overlap(player, powerups, collectPowerup, null, this);
     this.physics.add.collider(player, buildings);
     this.physics.add.collider(enemies, buildings);
@@ -180,7 +164,6 @@ function create() {
 
     // UI texts fixed to camera
     scoreText = this.add.text(10, 10, 'Score: 0', { font: '16px Arial', fill: '#ffffff' });
-
     scoreText.setScrollFactor(0);
     healthText = this.add.text(10, 30, 'Health: ' + health, { font: '16px Arial', fill: '#ffffff' });
     healthText.setScrollFactor(0);
@@ -195,7 +178,6 @@ function create() {
         callbackScope: this,
         loop: true
     });
-
 
     startTime = this.time.now;
 }
@@ -228,7 +210,6 @@ function update(time, delta) {
     // Spawn enemies every 2 seconds until boss appears
     spawnTimer += delta;
     if (!boss && spawnTimer > 2000) {
-
         spawnTimer = 0;
         spawnEnemy.call(this);
     }
@@ -262,7 +243,6 @@ function update(time, delta) {
         }
         updateBossBar();
     }
-
 }
 
 function shoot(pointer) {
@@ -280,7 +260,6 @@ function shoot(pointer) {
         const velocity = this.physics.velocityFromRotation(angle, bulletSpeed);
         bullet.setVelocity(velocity.x, velocity.y);
     }
-
 }
 
 function hitEnemy(bullet, enemy) {
@@ -289,7 +268,6 @@ function hitEnemy(bullet, enemy) {
     // Each enemy is worth 15 points
     score += 15;
     scoreText.setText('Score: ' + score);
-
 }
 
 function playerHit(playerObj, enemy) {
@@ -317,7 +295,6 @@ function spawnBoss() {
     bossHealthBar = this.add.graphics();
     bossCollider = this.physics.add.overlap(bullets, boss, hitBoss, null, this);
     bossPlayerCollider = this.physics.add.overlap(player, boss, playerHit, null, this);
-
 }
 
 function updateBossBar() {
@@ -357,7 +334,6 @@ function hitBoss(bullet, bossObj) {
         }
         boss = null;
         score += 150; // boss worth 150 points
-
         scoreText.setText('Score: ' + score);
     }
 }
@@ -405,7 +381,6 @@ function spawnPowerup() {
     const y = Phaser.Math.Between(50, WORLD_SIZE - 50);
     const p = powerups.create(x, y, type);
     p.type = type;
-
 }
 
 function collectPowerup(playerObj, power) {
@@ -418,7 +393,6 @@ function collectPowerup(playerObj, power) {
         bulletCount += 1;
     } else if (power.type === 'bspeed') {
         bulletSpeed += 100;
-
     }
     power.destroy();
 }
@@ -433,4 +407,3 @@ function gameOver(win) {
     }).setOrigin(0.5);
     return true;
 }
-
