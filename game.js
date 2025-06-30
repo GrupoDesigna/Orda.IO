@@ -86,12 +86,6 @@ function createTextures(scene) {
     bulletGfx.generateTexture('bullet', 10, 10);
     bulletGfx.destroy();
 
-    const enemyGfx = scene.add.graphics();
-    enemyGfx.fillStyle(0xff0000, 1);
-    enemyGfx.fillRect(0, 0, 30, 30);
-    enemyGfx.generateTexture('enemy', 30, 30);
-    enemyGfx.destroy();
-
     const enemyBulletGfx = scene.add.graphics();
     enemyBulletGfx.fillStyle(0xff8800, 1);
     enemyBulletGfx.fillCircle(4, 4, 4);
@@ -142,6 +136,7 @@ function createTextures(scene) {
 }
 
 function preload() {
+    this.load.image('enemy', 'Imagen/enemi1.png');
     createTextures(this);
 }
 
@@ -483,6 +478,7 @@ function spawnEnemy(x, y) {
         }
     }
     const enemy = enemies.create(x, y, 'enemy');
+    enemy.setDisplaySize(30, 30);
     enemy.setCollideWorldBounds(true);
     enemy.maxHealth = BASE_ENEMY_HEALTH * enemyLevelMultiplier;
     enemy.health = enemy.maxHealth;
