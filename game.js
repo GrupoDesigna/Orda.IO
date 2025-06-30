@@ -41,8 +41,8 @@ let speed = 200;
 let fireRate = 300; // milliseconds
 let bulletSpeed = 500;
 let bulletCount = 1;
-// Start with a higher damage so enemies aren't bullet sponges
-let bulletDamage = 25;
+// Start with a much higher damage so enemies die faster
+let bulletDamage = 20;
 
 let xp = 0;
 let level = 1;
@@ -221,8 +221,8 @@ function create() {
     bossLevel = 1;
     nextBossScore = 200;
     bossDamage = BASE_BOSS_DAMAGE;
-    // Reset starting bullet damage
-    bulletDamage = 5;
+    // Reset starting bullet damage to keep it high
+    bulletDamage = 20;
 
     bulletCount = 1;
     bulletSpeed = 500;
