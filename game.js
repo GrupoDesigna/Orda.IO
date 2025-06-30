@@ -478,7 +478,8 @@ function spawnEnemy(x, y) {
         }
     }
     const enemy = enemies.create(x, y, 'enemy');
-    enemy.setDisplaySize(40, 40);
+    enemy.setDisplaySize(60, 60);
+
     enemy.setCollideWorldBounds(true);
     enemy.maxHealth = BASE_ENEMY_HEALTH * enemyLevelMultiplier;
     enemy.health = enemy.maxHealth;
