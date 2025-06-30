@@ -1,6 +1,6 @@
 // Phaser 3 survival style game
 
-// Game configuration
+// Game configuration. We use two scenes: a simple menu and the game itself.
 const config = {
     type: Phaser.AUTO,
     width: 800,
@@ -13,11 +13,7 @@ const config = {
             debug: false
         }
     },
-    scene: {
-        preload: preload,
-        create: create,
-        update: update
-    }
+    scene: [] // scenes are pushed below after their declarations
 };
 
 const game = new Phaser.Game(config);
@@ -43,7 +39,13 @@ let speed = 200;
 let fireRate = 300; // milliseconds
 let bulletSpeed = 500;
 let bulletCount = 1;
+let bulletDamage = 1;
+let xp = 0;
+let level = 1;
+let xpToNext = 20;
 let startTime;
+let xpText;
+let upgradeTexts = [];
 let boss;
 let bossHealth = 0;
 let bossHealthBar;
@@ -53,68 +55,79 @@ let bossPlayerCollider;
 const WORLD_SIZE = 2000;
 const WIN_TIME = 60; // seconds to win
 
-function preload() {
-    // Create simple textures using graphics for player, bullet, enemy and powerup
-    const circle = this.add.graphics();
+// Helper to create simple textures once
+function createTextures(scene) {
+    if (scene.textures.exists('player')) return;
+
+    const circle = scene.add.graphics();
     circle.fillStyle(0x00ff00, 1);
     circle.fillCircle(15, 15, 15);
     circle.generateTexture('player', 30, 30);
     circle.destroy();
 
-    const bulletGfx = this.add.graphics();
+    const bulletGfx = scene.add.graphics();
     bulletGfx.fillStyle(0xffff00, 1);
     bulletGfx.fillCircle(5, 5, 5);
     bulletGfx.generateTexture('bullet', 10, 10);
     bulletGfx.destroy();
 
-    const enemyGfx = this.add.graphics();
+    const enemyGfx = scene.add.graphics();
     enemyGfx.fillStyle(0xff0000, 1);
     enemyGfx.fillRect(0, 0, 30, 30);
     enemyGfx.generateTexture('enemy', 30, 30);
     enemyGfx.destroy();
 
-    const enemyBulletGfx = this.add.graphics();
+    const enemyBulletGfx = scene.add.graphics();
     enemyBulletGfx.fillStyle(0xff8800, 1);
     enemyBulletGfx.fillCircle(4, 4, 4);
     enemyBulletGfx.generateTexture('enemyBullet', 8, 8);
     enemyBulletGfx.destroy();
 
-    const bossGfx = this.add.graphics();
-    // Boss will be a bright magenta circle
+    const bossGfx = scene.add.graphics();
     bossGfx.fillStyle(0xff00ff, 1);
     bossGfx.fillCircle(30, 30, 30);
     bossGfx.generateTexture('boss', 60, 60);
     bossGfx.destroy();
 
-    const multiGfx = this.add.graphics();
+    const multiGfx = scene.add.graphics();
     multiGfx.fillStyle(0xffffff, 1);
     multiGfx.fillCircle(10, 10, 10);
     multiGfx.generateTexture('multi', 20, 20);
     multiGfx.destroy();
 
-    const bspeedGfx = this.add.graphics();
+    const bspeedGfx = scene.add.graphics();
     bspeedGfx.fillStyle(0xffa500, 1);
     bspeedGfx.fillCircle(10, 10, 10);
     bspeedGfx.generateTexture('bspeed', 20, 20);
     bspeedGfx.destroy();
 
-    const speedGfx = this.add.graphics();
+    const speedGfx = scene.add.graphics();
     speedGfx.fillStyle(0x00ffff, 1);
     speedGfx.fillCircle(10, 10, 10);
     speedGfx.generateTexture('speed', 20, 20);
     speedGfx.destroy();
 
-    const healGfx = this.add.graphics();
+    const healGfx = scene.add.graphics();
     healGfx.fillStyle(0xff00ff, 1);
     healGfx.fillCircle(10, 10, 10);
     healGfx.generateTexture('heal', 20, 20);
     healGfx.destroy();
 
-    const buildingGfx = this.add.graphics();
+    const xpGfx = scene.add.graphics();
+    xpGfx.fillStyle(0x00ff88, 1);
+    xpGfx.fillCircle(6, 6, 6);
+    xpGfx.generateTexture('xp', 12, 12);
+    xpGfx.destroy();
+
+    const buildingGfx = scene.add.graphics();
     buildingGfx.fillStyle(0x555555, 1);
     buildingGfx.fillRect(0, 0, 60, 60);
     buildingGfx.generateTexture('building', 60, 60);
     buildingGfx.destroy();
+}
+
+function preload() {
+    createTextures(this);
 }
 
 function create() {
@@ -167,7 +180,9 @@ function create() {
     scoreText.setScrollFactor(0);
     healthText = this.add.text(10, 30, 'Health: ' + health, { font: '16px Arial', fill: '#ffffff' });
     healthText.setScrollFactor(0);
-    timeText = this.add.text(10, 50, 'Time: 0', { font: '16px Arial', fill: '#ffffff' });
+    xpText = this.add.text(10, 50, 'XP: 0/0  Lv 1', { font: '16px Arial', fill: '#ffffff' });
+    xpText.setScrollFactor(0);
+    timeText = this.add.text(10, 70, 'Time: 0', { font: '16px Arial', fill: '#ffffff' });
     timeText.setScrollFactor(0);
 
 
@@ -179,6 +194,19 @@ function create() {
         loop: true
     });
 
+    xp = 0;
+    level = 1;
+    xpToNext = 20;
+    xpText.setText('XP: 0/' + xpToNext + '  Lv 1');
+    score = 0;
+    scoreText.setText('Score: 0');
+    health = 5;
+    healthText.setText('Health: ' + health);
+    bulletDamage = 1;
+    bulletCount = 1;
+    bulletSpeed = 500;
+    fireRate = 300;
+    speed = 200;
     startTime = this.time.now;
 }
 
@@ -270,10 +298,16 @@ function shoot(pointer) {
 
 function hitEnemy(bullet, enemy) {
     bullet.destroy();
-    enemy.destroy();
-    // Each enemy is worth 15 points
-    score += 15;
-    scoreText.setText('Score: ' + score);
+    if (!enemy.health) enemy.health = 3;
+    enemy.health -= bulletDamage;
+    if (enemy.health <= 0) {
+        enemy.destroy();
+        // Each enemy is worth 15 points
+        score += 15;
+        scoreText.setText('Score: ' + score);
+        gainXP.call(this, 5);
+        maybeDropLoot(enemy.x, enemy.y);
+    }
 }
 
 function playerHit(playerObj, enemy) {
@@ -341,6 +375,8 @@ function hitBoss(bullet, bossObj) {
         boss = null;
         score += 150; // boss worth 150 points
         scoreText.setText('Score: ' + score);
+        gainXP.call(this, 20);
+        maybeDropLoot(bossObj.x, bossObj.y);
     }
 }
 
@@ -369,6 +405,7 @@ function spawnEnemy() {
     }
     const enemy = enemies.create(x, y, 'enemy');
     enemy.setCollideWorldBounds(true);
+    enemy.health = 3;
     const type = Phaser.Math.Between(0, 2);
     if (type === 0) {
         enemy.ability = 'fast';
@@ -381,12 +418,13 @@ function spawnEnemy() {
 }
 
 function spawnPowerup() {
-    const types = ['speed', 'heal', 'multi', 'bspeed'];
+    const types = ['speed', 'heal', 'multi', 'bspeed', 'xp'];
     const type = types[Phaser.Math.Between(0, types.length - 1)];
     const x = Phaser.Math.Between(50, WORLD_SIZE - 50);
     const y = Phaser.Math.Between(50, WORLD_SIZE - 50);
     const p = powerups.create(x, y, type);
     p.type = type;
+    if (type === 'xp') p.amount = 5;
 }
 
 function collectPowerup(playerObj, power) {
@@ -399,17 +437,127 @@ function collectPowerup(playerObj, power) {
         bulletCount += 1;
     } else if (power.type === 'bspeed') {
         bulletSpeed += 100;
+    } else if (power.type === 'xp') {
+        gainXP.call(this, power.amount || 5);
     }
     power.destroy();
+}
+
+function gainXP(amount) {
+    xp += amount;
+    checkLevelUp(this);
+    xpText.setText('XP: ' + xp + '/' + xpToNext + '  Lv ' + level);
+}
+
+function maybeDropLoot(x, y) {
+    if (Phaser.Math.Between(0, 100) < 30) {
+        const types = ['speed', 'heal', 'multi', 'bspeed', 'xp'];
+        const type = types[Phaser.Math.Between(0, types.length - 1)];
+        const p = powerups.create(x, y, type);
+        p.type = type;
+        if (type === 'xp') p.amount = 5;
+    }
+}
+
+function checkLevelUp(scene) {
+    while (xp >= xpToNext) {
+        xp -= xpToNext;
+        level++;
+        xpToNext += 10;
+        showUpgradeChoices(scene);
+    }
+    xpText.setText('XP: ' + xp + '/' + xpToNext + '  Lv ' + level);
+}
+
+function upgradeLabel(opt) {
+    switch (opt) {
+        case 'damage':
+            return 'Aumentar Daño';
+        case 'speed':
+            return 'Más Velocidad';
+        case 'firerate':
+            return 'Mayor Cadencia';
+        case 'bulletSpeed':
+            return 'Balas más rápidas';
+        case 'heal':
+            return 'Curación +1';
+    }
+    return opt;
+}
+
+function showUpgradeChoices(scene) {
+    scene.physics.pause();
+    const opts = Phaser.Utils.Array.Shuffle(['damage','speed','firerate','bulletSpeed','heal']).slice(0,3);
+    const baseY = scene.cameras.main.worldView.centerY - 20;
+    upgradeTexts = opts.map((opt, idx) => {
+        const t = scene.add.text(scene.cameras.main.worldView.centerX, baseY + idx * 30, upgradeLabel(opt), {
+            font: '20px Arial',
+            fill: '#ffff00'
+        }).setOrigin(0.5).setInteractive();
+        t.on('pointerdown', () => applyUpgrade(scene, opt));
+        return t;
+    });
+}
+
+function applyUpgrade(scene, opt) {
+    if (opt === 'damage') {
+        bulletDamage += 1;
+    } else if (opt === 'speed') {
+        speed += 50;
+    } else if (opt === 'firerate') {
+        fireRate = Math.max(100, fireRate - 50);
+    } else if (opt === 'bulletSpeed') {
+        bulletSpeed += 100;
+    } else if (opt === 'heal') {
+        health += 1;
+        healthText.setText('Health: ' + health);
+    }
+    upgradeTexts.forEach(t => t.destroy());
+    scene.physics.resume();
 }
 
 function gameOver(win) {
     this.physics.pause();
     player.setTint(0x808080);
     const msg = win ? 'You Survived!' : 'Game Over';
-    this.add.text(this.cameras.main.worldView.centerX, this.cameras.main.worldView.centerY, msg, {
-        font: '32px Arial',
-        fill: '#ffffff'
-    }).setOrigin(0.5);
-    return true;
+    this.scene.start('Menu', { msg });
 }
+
+// --- Scene definitions ---
+class MenuScene extends Phaser.Scene {
+    constructor() {
+        super('Menu');
+    }
+    create(data) {
+        createTextures(this);
+        const { width, height } = this.cameras.main;
+        if (data && data.msg) {
+            this.add.text(width / 2, height / 2 - 60, data.msg, {
+                font: '24px Arial',
+                fill: '#ffffff'
+            }).setOrigin(0.5);
+        }
+        const play = this.add.text(width / 2, height / 2, 'Jugar', {
+            font: '32px Arial',
+            fill: '#00ff00'
+        }).setOrigin(0.5).setInteractive();
+        play.on('pointerdown', () => this.scene.start('Game'));
+    }
+}
+
+class GameScene extends Phaser.Scene {
+    constructor() {
+        super('Game');
+    }
+    preload() {
+        preload.call(this);
+    }
+    create() {
+        create.call(this);
+    }
+    update(time, delta) {
+        update.call(this, time, delta);
+    }
+}
+
+config.scene.push(MenuScene, GameScene);
