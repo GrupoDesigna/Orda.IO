@@ -42,7 +42,7 @@ let fireRate = 300; // milliseconds
 let bulletSpeed = 500;
 let bulletCount = 1;
 // Start with a higher damage so enemies aren't bullet sponges
-let bulletDamage = 5;
+let bulletDamage = 25;
 
 let xp = 0;
 let level = 1;
