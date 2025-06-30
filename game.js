@@ -35,7 +35,8 @@ let healthText;
 let timeText;
 let spawnTimer = 0;
 let score = 0;
-let health = 5;
+let playerMaxHealth = 200;
+let health = playerMaxHealth;
 let speed = 200;
 let fireRate = 300; // milliseconds
 let bulletSpeed = 500;
@@ -49,6 +50,7 @@ let xpText;
 let upgradeTexts = [];
 let boss;
 let bossHealth = 0;
+let bossMaxHealth = 0;
 let bossHealthBar;
 let bossShootTimer = 0;
 let bossCollider;
@@ -57,6 +59,14 @@ let ambushTimer = 0;
 let nextAmbush = 15000;
 const WORLD_SIZE = 2000;
 const AUTO_RADIUS = 250;
+const BASE_ENEMY_HEALTH = 100;
+const BASE_ENEMY_DAMAGE = 10;
+const BASE_BOSS_HEALTH = 2000;
+const BASE_BOSS_DAMAGE = 20;
+let enemyLevelMultiplier = 1;
+let bossLevel = 1;
+let bossDamage = BASE_BOSS_DAMAGE;
+let nextBossScore = 200;
 
 // Helper to create simple textures once
 function createTextures(scene) {
@@ -202,8 +212,13 @@ function create() {
     xpText.setText('XP: 0/' + xpToNext + '  Lv 1');
     score = 0;
     scoreText.setText('Score: 0');
-    health = 5;
+    playerMaxHealth = 200;
+    health = playerMaxHealth;
     healthText.setText('Health: ' + health);
+    enemyLevelMultiplier = 1;
+    bossLevel = 1;
+    nextBossScore = 200;
+    bossDamage = BASE_BOSS_DAMAGE;
     bulletDamage = 1;
     bulletCount = 1;
     bulletSpeed = 500;
@@ -241,8 +256,8 @@ function update(time, delta) {
         spawnEnemy.call(this);
     }
 
-    // Spawn boss at 100 points
-    if (!boss && score >= 100) {
+    // Spawn boss every 200 points
+    if (!boss && score >= nextBossScore) {
         spawnBoss.call(this);
     }
 
@@ -301,6 +316,13 @@ function autoShoot(time, scene) {
             nearest = e;
         }
     });
+    if (boss && boss.active) {
+        const d = Phaser.Math.Distance.Between(player.x, player.y, boss.x, boss.y);
+        if (d < nearestDist) {
+            nearestDist = d;
+            nearest = boss;
+        }
+    }
     if (!nearest) return;
     lastFired = time;
     const baseAngle = Phaser.Math.Angle.Between(player.x, player.y, nearest.x, nearest.y);
@@ -351,7 +373,8 @@ function hitEnemy(bullet, enemy) {
 function playerHit(playerObj, enemy) {
     if (enemy.healthBar) enemy.healthBar.destroy();
     enemy.destroy();
-    health--;
+    const dmg = enemy.damage || 1;
+    health -= dmg;
     healthText.setText('Health: ' + health);
 }
 
@@ -368,9 +391,12 @@ function spawnBoss() {
         x = Phaser.Math.Between(0, WORLD_SIZE);
         y = pos === 0 ? 0 : WORLD_SIZE;
     }
-    bossHealth = 30;
+    bossMaxHealth = BASE_BOSS_HEALTH * Math.pow(2, bossLevel - 1);
+    bossHealth = bossMaxHealth;
+    bossDamage = BASE_BOSS_DAMAGE * Math.pow(2, bossLevel - 1);
     boss = this.physics.add.image(x, y, 'boss');
     boss.setCollideWorldBounds(true);
+    boss.damage = bossDamage;
     bossHealthBar = this.add.graphics();
     bossCollider = this.physics.add.overlap(bullets, boss, hitBoss, null, this);
     bossPlayerCollider = this.physics.add.overlap(player, boss, playerHit, null, this);
@@ -383,7 +409,7 @@ function updateBossBar() {
     const x = boss.x - width / 2;
     const y = boss.y - 40;
     bossHealthBar.fillStyle(0xff0000, 1);
-    bossHealthBar.fillRect(x, y, width * (bossHealth / 30), 6);
+    bossHealthBar.fillRect(x, y, width * (bossHealth / bossMaxHealth), 6);
     bossHealthBar.lineStyle(1, 0xffffff, 1);
     bossHealthBar.strokeRect(x, y, width, 6);
 }
@@ -395,11 +421,12 @@ function bossShoot() {
     b.setCollideWorldBounds(false);
     b.body.allowGravity = false;
     b.setVelocity(velocity.x, velocity.y);
+    b.damage = bossDamage;
 }
 
 function hitBoss(bullet, bossObj) {
     bullet.destroy();
-    bossHealth--;
+    bossHealth -= bulletDamage;
     if (bossHealth <= 0) {
         bossHealthBar.destroy();
         bossObj.destroy();
@@ -414,6 +441,11 @@ function hitBoss(bullet, bossObj) {
         boss = null;
         score += 150; // boss worth 150 points
         scoreText.setText('Score: ' + score);
+        // Grant a free level
+        xp += xpToNext;
+        checkLevelUp(this);
+        bossLevel++;
+        nextBossScore += 200;
         gainXP.call(this, 20);
         maybeDropLoot(bossObj.x, bossObj.y);
     }
@@ -421,7 +453,8 @@ function hitBoss(bullet, bossObj) {
 
 function playerHitByBullet(playerObj, bullet) {
     bullet.destroy();
-    health--;
+    const dmg = bullet.damage || 1;
+    health -= dmg;
     healthText.setText('Health: ' + health);
 }
 
@@ -432,6 +465,7 @@ function enemyShoot(enemy) {
     b.setCollideWorldBounds(false);
     b.body.allowGravity = false;
     b.setVelocity(velocity.x, velocity.y);
+    b.damage = enemy.damage || BASE_ENEMY_DAMAGE;
 }
 
 function spawnEnemy(x, y) {
@@ -446,8 +480,9 @@ function spawnEnemy(x, y) {
     }
     const enemy = enemies.create(x, y, 'enemy');
     enemy.setCollideWorldBounds(true);
-    enemy.maxHealth = 3;
-    enemy.health = 3;
+    enemy.maxHealth = BASE_ENEMY_HEALTH * enemyLevelMultiplier;
+    enemy.health = enemy.maxHealth;
+    enemy.damage = BASE_ENEMY_DAMAGE * enemyLevelMultiplier;
     enemy.healthBar = this.add.graphics();
     enemy.updateHealthBar = () => {
         enemy.healthBar.clear();
@@ -529,6 +564,10 @@ function checkLevelUp(scene) {
         xp -= xpToNext;
         level++;
         xpToNext += 10;
+        playerMaxHealth += 50;
+        health = playerMaxHealth;
+        healthText.setText('Health: ' + health);
+        enemyLevelMultiplier = Math.pow(2, level - 1);
         showUpgradeChoices(scene);
     }
     xpText.setText('XP: ' + xp + '/' + xpToNext + '  Lv ' + level);
