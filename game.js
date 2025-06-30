@@ -407,4 +407,3 @@ function gameOver(win) {
     }).setOrigin(0.5);
     return true;
 }
-
