@@ -14,6 +14,7 @@ const config = {
         }
     },
     scene: [] // scenes will be added after Phaser.Game creation
+
 };
 
 const game = new Phaser.Game(config);
@@ -563,3 +564,4 @@ class GameScene extends Phaser.Scene {
 game.scene.add('Menu', MenuScene);
 game.scene.add('Game', GameScene);
 game.scene.start('Menu');
+
