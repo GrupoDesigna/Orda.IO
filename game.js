@@ -361,6 +361,8 @@ function hitEnemy(bullet, enemy) {
     if (enemy.health <= 0) {
         if (enemy.healthBar) enemy.healthBar.destroy();
         enemy.destroy();
+        // Small camera shake when an enemy dies
+        this.cameras.main.shake(150, 0.005);
         // Each enemy is worth 15 points
         score += 15;
         scoreText.setText('Score: ' + score);
@@ -375,6 +377,9 @@ function playerHit(playerObj, enemy) {
     const dmg = enemy.damage || 1;
     health -= dmg;
     healthText.setText('Health: ' + health);
+    // Red flash and camera shake when player takes damage
+    this.cameras.main.flash(200, 255, 0, 0);
+    this.cameras.main.shake(200, 0.01);
 }
 
 function bulletHitBuilding(bullet, building) {
@@ -438,6 +443,8 @@ function hitBoss(bullet, bossObj) {
             bossPlayerCollider = null;
         }
         boss = null;
+        // Shake camera when the boss dies
+        this.cameras.main.shake(200, 0.01);
         score += 150; // boss worth 150 points
         scoreText.setText('Score: ' + score);
         // Grant a free level
@@ -455,6 +462,9 @@ function playerHitByBullet(playerObj, bullet) {
     const dmg = bullet.damage || 1;
     health -= dmg;
     healthText.setText('Health: ' + health);
+    // Red flash and camera shake when player is hit by a bullet
+    this.cameras.main.flash(200, 255, 0, 0);
+    this.cameras.main.shake(200, 0.01);
 }
 
 function enemyShoot(enemy) {
