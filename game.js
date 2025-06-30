@@ -240,6 +240,7 @@ function update(time, delta) {
 
     // Boss behavior
     if (boss && boss.active && boss.body) {
+
         this.physics.moveToObject(boss, player, 80);
         bossShootTimer += delta;
         if (bossShootTimer > 1500) {
