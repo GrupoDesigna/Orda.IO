@@ -221,8 +221,8 @@ function update(time, delta) {
 
     // Enemies chase player and use abilities
     enemies.children.iterate(enemy => {
-        // Skip any destroyed enemies that may still linger in the group
-        if (!enemy || !enemy.body) {
+        // Skip if the enemy has been destroyed or its body removed
+        if (!enemy || !enemy.active || !enemy.body) {
             return;
         }
 
@@ -239,7 +239,8 @@ function update(time, delta) {
     });
 
     // Boss behavior
-    if (boss && boss.body) {
+    if (boss && boss.active && boss.body) {
+
         this.physics.moveToObject(boss, player, 80);
         bossShootTimer += delta;
         if (bossShootTimer > 1500) {
