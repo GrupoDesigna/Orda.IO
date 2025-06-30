@@ -478,7 +478,8 @@ function spawnEnemy(x, y) {
         }
     }
     const enemy = enemies.create(x, y, 'enemy');
-    enemy.setDisplaySize(30, 30);
+    enemy.setDisplaySize(60, 60);
+
     enemy.setCollideWorldBounds(true);
     enemy.maxHealth = BASE_ENEMY_HEALTH * enemyLevelMultiplier;
     enemy.health = enemy.maxHealth;
@@ -486,7 +487,7 @@ function spawnEnemy(x, y) {
     enemy.healthBar = this.add.graphics();
     enemy.updateHealthBar = () => {
         enemy.healthBar.clear();
-        const width = 30;
+        const width = 40;
         const hx = enemy.x - width / 2;
         const hy = enemy.y - 20;
         enemy.healthBar.fillStyle(0xff0000, 1);
