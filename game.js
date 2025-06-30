@@ -221,9 +221,14 @@ function update(time, delta) {
 
     // Enemies chase player and use abilities
     enemies.children.iterate(enemy => {
-        if (!enemy) return;
+        // Skip any destroyed enemies that may still linger in the group
+        if (!enemy || !enemy.body) {
+            return;
+        }
+
         const speedVal = enemy.ability === 'fast' ? 150 : 100;
         this.physics.moveToObject(enemy, player, speedVal);
+
         if (enemy.ability === 'shoot') {
             enemy.shootTimer += delta;
             if (enemy.shootTimer > 2000) {
@@ -234,7 +239,7 @@ function update(time, delta) {
     });
 
     // Boss behavior
-    if (boss) {
+    if (boss && boss.body) {
         this.physics.moveToObject(boss, player, 80);
         bossShootTimer += delta;
         if (bossShootTimer > 1500) {
