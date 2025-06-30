@@ -13,7 +13,8 @@ const config = {
             debug: false
         }
     },
-    scene: [] // scenes are pushed below after their declarations
+    scene: [] // scenes will be added after Phaser.Game creation
+
 };
 
 const game = new Phaser.Game(config);
@@ -560,4 +561,7 @@ class GameScene extends Phaser.Scene {
     }
 }
 
-config.scene.push(MenuScene, GameScene);
+game.scene.add('Menu', MenuScene);
+game.scene.add('Game', GameScene);
+game.scene.start('Menu');
+
