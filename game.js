@@ -54,7 +54,7 @@ let bossShootTimer = 0;
 let bossCollider;
 let bossPlayerCollider;
 const WORLD_SIZE = 2000;
-const WIN_TIME = 60; // seconds to win
+const AUTO_RADIUS = 250;
 
 // Helper to create simple textures once
 function createTextures(scene) {
@@ -162,7 +162,6 @@ function create() {
     // Input
     cursors = this.input.keyboard.createCursorKeys();
     wasd = this.input.keyboard.addKeys('W,A,S,D');
-    this.input.on('pointerdown', shoot, this);
 
     // Collisions
     this.physics.add.overlap(bullets, enemies, hitEnemy, null, this);
@@ -217,9 +216,6 @@ function update(time, delta) {
     }
     const elapsed = Math.floor((time - startTime) / 1000);
     timeText.setText('Time: ' + elapsed);
-    if (elapsed >= WIN_TIME) {
-        return gameOver.call(this, true);
-    }
 
     // Player movement
     let vx = 0;
@@ -277,6 +273,33 @@ function update(time, delta) {
             bossShoot.call(this);
         }
         updateBossBar();
+    }
+    autoShoot(time, this);
+}
+
+function autoShoot(time, scene) {
+    if (time < lastFired + fireRate) return;
+    let nearest = null;
+    let nearestDist = AUTO_RADIUS;
+    enemies.children.iterate(e => {
+        if (!e || !e.active) return;
+        const d = Phaser.Math.Distance.Between(player.x, player.y, e.x, e.y);
+        if (d < nearestDist) {
+            nearestDist = d;
+            nearest = e;
+        }
+    });
+    if (!nearest) return;
+    lastFired = time;
+    const baseAngle = Phaser.Math.Angle.Between(player.x, player.y, nearest.x, nearest.y);
+    for (let i = 0; i < bulletCount; i++) {
+        const offset = (i - (bulletCount - 1) / 2) * 0.1;
+        const angle = baseAngle + offset;
+        const bullet = bullets.create(player.x, player.y, 'bullet');
+        bullet.setCollideWorldBounds(false);
+        bullet.body.allowGravity = false;
+        const velocity = scene.physics.velocityFromRotation(angle, bulletSpeed);
+        bullet.setVelocity(velocity.x, velocity.y);
     }
 }
 
