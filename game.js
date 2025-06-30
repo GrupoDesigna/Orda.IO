@@ -53,6 +53,8 @@ let bossHealthBar;
 let bossShootTimer = 0;
 let bossCollider;
 let bossPlayerCollider;
+let ambushTimer = 0;
+let nextAmbush = 15000;
 const WORLD_SIZE = 2000;
 const AUTO_RADIUS = 250;
 
@@ -86,7 +88,7 @@ function createTextures(scene) {
 
     const bossGfx = scene.add.graphics();
     bossGfx.fillStyle(0xff00ff, 1);
-    bossGfx.fillCircle(30, 30, 30);
+    bossGfx.fillRect(0, 0, 60, 60);
     bossGfx.generateTexture('boss', 60, 60);
     bossGfx.destroy();
 
@@ -232,9 +234,9 @@ function update(time, delta) {
     }
     player.setVelocity(vx, vy);
 
-    // Spawn enemies every 2 seconds until boss appears
+    // Spawn enemies continuously every 2 seconds
     spawnTimer += delta;
-    if (!boss && spawnTimer > 2000) {
+    if (spawnTimer > 2000) {
         spawnTimer = 0;
         spawnEnemy.call(this);
     }
@@ -242,6 +244,14 @@ function update(time, delta) {
     // Spawn boss at 100 points
     if (!boss && score >= 100) {
         spawnBoss.call(this);
+    }
+
+    // Random ambushes near the player
+    ambushTimer += delta;
+    if (ambushTimer > nextAmbush) {
+        ambushTimer = 0;
+        nextAmbush = Phaser.Math.Between(15000, 30000);
+        spawnAmbush.call(this);
     }
 
     // Enemies chase player and use abilities
@@ -253,6 +263,8 @@ function update(time, delta) {
 
         const speedVal = enemy.ability === 'fast' ? 150 : 100;
         this.physics.moveToObject(enemy, player, speedVal);
+
+        if (enemy.updateHealthBar) enemy.updateHealthBar();
 
         if (enemy.ability === 'shoot') {
             enemy.shootTimer += delta;
@@ -324,7 +336,9 @@ function hitEnemy(bullet, enemy) {
     bullet.destroy();
     if (!enemy.health) enemy.health = 3;
     enemy.health -= bulletDamage;
+    if (enemy.updateHealthBar) enemy.updateHealthBar();
     if (enemy.health <= 0) {
+        if (enemy.healthBar) enemy.healthBar.destroy();
         enemy.destroy();
         // Each enemy is worth 15 points
         score += 15;
@@ -335,6 +349,7 @@ function hitEnemy(bullet, enemy) {
 }
 
 function playerHit(playerObj, enemy) {
+    if (enemy.healthBar) enemy.healthBar.destroy();
     enemy.destroy();
     health--;
     healthText.setText('Health: ' + health);
@@ -419,17 +434,32 @@ function enemyShoot(enemy) {
     b.setVelocity(velocity.x, velocity.y);
 }
 
-function spawnEnemy() {
-    const pos = Phaser.Math.Between(0, 1);
-    let x = pos === 0 ? 0 : WORLD_SIZE;
-    let y = Phaser.Math.Between(0, WORLD_SIZE);
-    if (Phaser.Math.Between(0, 1) === 0) {
-        x = Phaser.Math.Between(0, WORLD_SIZE);
-        y = pos === 0 ? 0 : WORLD_SIZE;
+function spawnEnemy(x, y) {
+    if (x == null || y == null) {
+        const pos = Phaser.Math.Between(0, 1);
+        x = pos === 0 ? 0 : WORLD_SIZE;
+        y = Phaser.Math.Between(0, WORLD_SIZE);
+        if (Phaser.Math.Between(0, 1) === 0) {
+            x = Phaser.Math.Between(0, WORLD_SIZE);
+            y = pos === 0 ? 0 : WORLD_SIZE;
+        }
     }
     const enemy = enemies.create(x, y, 'enemy');
     enemy.setCollideWorldBounds(true);
+    enemy.maxHealth = 3;
     enemy.health = 3;
+    enemy.healthBar = this.add.graphics();
+    enemy.updateHealthBar = () => {
+        enemy.healthBar.clear();
+        const width = 30;
+        const hx = enemy.x - width / 2;
+        const hy = enemy.y - 20;
+        enemy.healthBar.fillStyle(0xff0000, 1);
+        enemy.healthBar.fillRect(hx, hy, width * (enemy.health / enemy.maxHealth), 4);
+        enemy.healthBar.lineStyle(1, 0xffffff, 1);
+        enemy.healthBar.strokeRect(hx, hy, width, 4);
+    };
+    enemy.updateHealthBar();
     const type = Phaser.Math.Between(0, 2);
     if (type === 0) {
         enemy.ability = 'fast';
@@ -438,6 +468,17 @@ function spawnEnemy() {
         enemy.shootTimer = 0;
     } else {
         enemy.ability = 'normal';
+    }
+}
+
+function spawnAmbush() {
+    const count = 5;
+    const distance = 150;
+    for (let i = 0; i < count; i++) {
+        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        const ex = Phaser.Math.Clamp(player.x + Math.cos(angle) * distance, 0, WORLD_SIZE);
+        const ey = Phaser.Math.Clamp(player.y + Math.sin(angle) * distance, 0, WORLD_SIZE);
+        spawnEnemy.call(this, ex, ey);
     }
 }
 
